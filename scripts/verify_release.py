@@ -90,6 +90,10 @@ def main() -> None:
     if untracked.returncode != 0 or untracked.stdout:
         raise SystemExit(f"release gate requires a clean tree; untracked:\n{untracked.stdout}")
 
+    private_key = "BEGIN " + "(RSA|OPENSSH|EC)" + " PRIVATE KEY"
+    classic_token = "gh" + "p_[A-Za-z0-9]{30,}"
+    fine_grained_token = "github" + "_pat_"
+    secret_pattern = "|".join((private_key, classic_token, fine_grained_token))
     secret_scan = subprocess.run(
         [
             "git",
@@ -97,7 +101,7 @@ def main() -> None:
             "-I",
             "-n",
             "-E",
-            "BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|ghp_[A-Za-z0-9]{30,}|github_pat_",
+            secret_pattern,
         ],
         cwd=ROOT,
         check=False,
