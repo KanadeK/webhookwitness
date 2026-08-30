@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "name": "dedupe-and-monotonic-state-fail",
+  "service": {
+    "command": ["{python}", "handler.py", "--port", "8766", "--state", "runtime/failing-state.json", "--broken"],
+    "cwd": ".",
+    "ready": {
+      "url": "http://127.0.0.1:8766/health",
+      "timeout_seconds": 5,
+      "interval_ms": 50
+    }
+  },
+  "defaults": {
+    "url": "http://127.0.0.1:8766/webhook",
+    "headers": {"Content-Type": "application/json"},
+    "timeout_seconds": 3
+  },
+  "events": {
+    "completed": {
+      "body": {"sequence": 2, "status": "completed"},
+      "headers": {"X-Event-ID": "evt-completed"}
+    },
+    "pending": {
+      "body": {"sequence": 1, "status": "pending"},
+      "headers": {"X-Event-ID": "evt-pending"}
+    }
+  },
+  "deliveries": [
+    {"name": "newer-first", "event": "completed", "expect": {"statuses": [202]}},
+    {"name": "older-after-newer", "event": "pending", "expect": {"statuses": [202]}},
+    {"name": "duplicate-retry", "event": "completed", "delay_ms": 10, "expect": {"statuses": [202]}}
+  ],
+  "probe": {
+    "command": ["{python}", "probe.py", "runtime/failing-state.json"],
+    "cwd": ".",
+    "expect": {
+      "exit_code": 0,
+      "json": {
+        "effect_count": 1,
+        "processed_event_ids": ["evt-completed", "evt-pending"],
+        "sequence": 2,
+        "status": "completed"
+      }
+    }
+  }
+}

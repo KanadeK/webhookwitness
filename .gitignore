@@ -17,3 +17,5 @@ dist/
 artifacts/
 examples/runtime/
 .tmp/
+.uv-cache/
+examples/runtime/
