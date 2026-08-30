@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.13"
+      - name: Install locked dependencies
+        run: uv sync --locked --extra dev
+      - name: Audit locked dependencies
+        run: uv audit --locked
+      - name: Verify source tree
+        run: uv run --no-sync python scripts/verify_release.py
+      - name: Build distributions and release assets
+        run: |
+          uv run --no-sync python -m build --no-isolation
+          uv run --no-sync python scripts/build_release_assets.py --dist dist
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "${{ github.ref_name }}" dist/*
+          --verify-tag
+          --title "WebhookWitness 0.1.0"
+          --notes-file docs/release-notes-v0.1.0.md

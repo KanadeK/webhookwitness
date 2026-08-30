@@ -6,7 +6,7 @@
     "cwd": ".",
     "ready": {
       "url": "http://127.0.0.1:8766/health",
-      "timeout_seconds": 5,
+      "timeout_seconds": 15,
       "interval_ms": 50
     }
   },

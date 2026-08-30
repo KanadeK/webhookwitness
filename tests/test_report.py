@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 from xml.etree import ElementTree
 
+import pytest
+
+from webhookwitness.errors import SetupError
 from webhookwitness.report import write_reports
 from webhookwitness.runner import DeliveryResult, ProbeResult, RunResult
 
@@ -85,3 +88,11 @@ def test_passing_report_has_zero_junit_failures(tmp_path: Path) -> None:
     suite = ElementTree.parse(tmp_path / "junit.xml").getroot()
     assert suite.attrib["failures"] == "0"
     assert not suite.findall(".//failure")
+
+
+def test_report_path_failure_is_a_setup_error(tmp_path: Path) -> None:
+    occupied = tmp_path / "occupied"
+    occupied.write_text("file", encoding="utf-8")
+
+    with pytest.raises(SetupError, match="cannot write reports"):
+        write_reports(failing_result(), occupied)

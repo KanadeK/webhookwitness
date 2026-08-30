@@ -124,3 +124,111 @@ def test_rejects_unknown_delivery_event(tmp_path: Path) -> None:
 
     with pytest.raises(ScenarioError, match="unknown event"):
         load_scenario(write_scenario(tmp_path, document))
+
+
+def test_rejects_invalid_json(tmp_path: Path) -> None:
+    path = tmp_path / "scenario.json"
+    path.write_text("{", encoding="utf-8")
+
+    with pytest.raises(ScenarioError, match="cannot read scenario JSON"):
+        load_scenario(path)
+
+
+def test_rejects_non_object_document(tmp_path: Path) -> None:
+    path = tmp_path / "scenario.json"
+    path.write_text("[]", encoding="utf-8")
+
+    with pytest.raises(ScenarioError, match="scenario must be an object"):
+        load_scenario(path)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda value: value.update({"name": "  "}), "non-empty string"),
+        (lambda value: value.update({"events": {}}), "events must not be empty"),
+        (lambda value: value.update({"deliveries": []}), "deliveries must contain 1 to 100"),
+        (
+            lambda value: value["deliveries"].append(dict(value["deliveries"][0])),
+            "duplicate delivery name",
+        ),
+        (lambda value: value["service"].update({"command": []}), "non-empty argv"),
+        (
+            lambda value: value["service"].update({"cwd": "missing-directory"}),
+            "existing directory",
+        ),
+        (
+            lambda value: value["defaults"].update({"timeout_seconds": True}),
+            "must be a number",
+        ),
+        (
+            lambda value: value["service"]["ready"].update({"interval_ms": 9}),
+            "must be between 10 and 5000",
+        ),
+        (
+            lambda value: value["defaults"].update({"headers": {"Host": "example"}}),
+            "cannot set transport header",
+        ),
+        (
+            lambda value: value["defaults"].update({"headers": {"X-Test": 7}}),
+            "must be a string",
+        ),
+        (
+            lambda value: value["defaults"].update({"headers": {"X-Test": "bad\nvalue"}}),
+            "cannot contain newlines",
+        ),
+        (
+            lambda value: value["deliveries"][0].update({"delay_ms": 1.5}),
+            "must be an integer",
+        ),
+        (
+            lambda value: value["deliveries"][0]["expect"].update({"statuses": []}),
+            "must not be empty",
+        ),
+        (
+            lambda value: value["deliveries"][0]["expect"].update({"statuses": [202, 202]}),
+            "must not contain duplicates",
+        ),
+        (
+            lambda value: value["probe"]["expect"].pop("json"),
+            "expect.json is required",
+        ),
+        (
+            lambda value: value.update(
+                {
+                    "events": {"raw": {"body_file": "missing.json"}},
+                    "deliveries": [{"name": "raw", "event": "raw", "expect": {"statuses": [202]}}],
+                }
+            ),
+            "existing file",
+        ),
+    ],
+)
+def test_rejects_invalid_boundary_values(tmp_path: Path, mutate: object, message: str) -> None:
+    document = valid_document()
+    assert callable(mutate)
+    mutate(document)
+
+    with pytest.raises(ScenarioError, match=message):
+        load_scenario(write_scenario(tmp_path, document))
+
+
+def test_rejects_absolute_working_directory(tmp_path: Path) -> None:
+    document = valid_document()
+    service = document["service"]
+    assert isinstance(service, dict)
+    service["cwd"] = str(tmp_path.resolve())
+
+    with pytest.raises(ScenarioError, match="inside the scenario directory"):
+        load_scenario(write_scenario(tmp_path, document))
+
+
+def test_rejects_oversized_event_body(tmp_path: Path) -> None:
+    document = valid_document()
+    document["events"] = {"large": {"body": "x" * 1_048_577}}
+    deliveries = document["deliveries"]
+    assert isinstance(deliveries, list)
+    deliveries[0]["event"] = "large"
+
+    with pytest.raises(ScenarioError, match="body exceeds 1048576 bytes"):
+        load_scenario(write_scenario(tmp_path, document))
