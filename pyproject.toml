@@ -1,0 +1,83 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "webhookwitness"
+version = "0.1.0"
+description = "Prove webhook handlers survive duplicate and out-of-order delivery."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { file = "LICENSE" }
+authors = [{ name = "KanadeK" }]
+keywords = ["webhook", "idempotency", "contract-testing", "testing", "cli"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Testing",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "build==1.2.2.post1",
+  "hatchling==1.27.0",
+  "mypy==1.17.1",
+  "pytest==9.0.3",
+  "pytest-cov==6.2.1",
+  "ruff==0.12.7",
+]
+
+[project.scripts]
+webhookwitness = "webhookwitness.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/KanadeK/webhookwitness"
+Documentation = "https://github.com/KanadeK/webhookwitness#readme"
+Issues = "https://github.com/KanadeK/webhookwitness/issues"
+Source = "https://github.com/KanadeK/webhookwitness"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/webhookwitness"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers -p no:cacheprovider"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["webhookwitness"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "PTH", "S", "C4", "PIE"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S603"]
+"examples/**/*.py" = ["S603"]
+"scripts/**/*.py" = ["S603"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["webhookwitness"]
