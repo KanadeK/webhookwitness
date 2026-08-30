@@ -57,6 +57,7 @@ class DeliverySpec:
 class ProbeSpec:
     command: tuple[str, ...]
     cwd: Path
+    timeout_seconds: float
     expected_exit_code: int
     expected_json: JsonValue
 
@@ -214,7 +215,7 @@ def _parse_deliveries(value: object, events: dict[str, EventSpec]) -> tuple[Deli
 
 def _parse_probe(value: object, base: Path) -> ProbeSpec:
     data = _object(value, "scenario.probe")
-    _keys(data, {"command", "cwd", "expect"}, "scenario.probe")
+    _keys(data, {"command", "cwd", "timeout_seconds", "expect"}, "scenario.probe")
     expect = _object(data.get("expect"), "scenario.probe.expect")
     _keys(expect, {"exit_code", "json"}, "scenario.probe.expect")
     if "json" not in expect:
@@ -222,6 +223,9 @@ def _parse_probe(value: object, base: Path) -> ProbeSpec:
     return ProbeSpec(
         command=_command(data.get("command"), "scenario.probe.command"),
         cwd=_relative_directory(data.get("cwd", "."), base, "scenario.probe.cwd"),
+        timeout_seconds=_bounded_number(
+            data.get("timeout_seconds", 10), "scenario.probe.timeout_seconds", 0.1, 60
+        ),
         expected_exit_code=_bounded_integer(
             expect.get("exit_code", 0), "scenario.probe.expect.exit_code", 0, 255
         ),
