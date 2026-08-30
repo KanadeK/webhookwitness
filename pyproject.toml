@@ -29,7 +29,7 @@ dev = [
   "build==1.2.2.post1",
   "hatchling==1.27.0",
   "mypy==1.17.1",
-  "pytest==9.0.3",
+  "pytest==9.1.1",
   "pytest-cov==6.2.1",
   "ruff==0.12.7",
 ]
