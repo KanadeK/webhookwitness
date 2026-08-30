@@ -8,6 +8,6 @@
 - [x] Passing and failing end-to-end examples
 - [x] User docs, scenario reference, repair workflow, and research record
 - [x] CI matrix, release workflow, packaging, and clean-install smoke
-- [ ] Full release gate and five-axis review
+- [x] Full release gate and five-axis review
 - [ ] Public repository, CI, v0.1.0 Release assets, fresh install, contributors
 - [ ] Gmail self-notification after remote verification
